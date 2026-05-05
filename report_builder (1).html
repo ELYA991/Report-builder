@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Конструктор отчёта по аварийности</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;
+  --surface:#181c26;
+  --surface2:#1e2333;
+  --border:#2a2f42;
+  --accent:#4f8ef7;
+  --accent2:#38c9a0;
+  --danger:#f74f4f;
+  --text:#e2e8f0;
+  --muted:#7a85a0;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+.app{display:grid;grid-template-columns:1fr 1fr;height:100vh;gap:0}
+.left{overflow-y:auto;padding:20px;border-right:1px solid var(--border)}
+.right{overflow-y:auto;padding:20px;background:var(--surface)}
+h1{font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+h2{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px}
+label{font-size:11px;color:var(--muted);letter-spacing:0.5px;display:block;margin-bottom:4px;margin-top:10px}
+label:first-child{margin-top:0}
+input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 10px;outline:none;transition:border 0.2s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:60px}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;font-family:var(--sans)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3a7ef5}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:transparent;border:1px solid var(--border);color:var(--danger);padding:4px 8px;font-size:11px}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-accent2{background:var(--accent2);color:#0f1117;font-weight:600}
+.btn-accent2:hover{background:#2eb892}
+.branch-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+.branch-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:var(--surface)}
+.branch-header:hover{background:var(--surface2)}
+.branch-title{font-size:13px;font-weight:500}
+.branch-body{padding:14px;border-top:1px solid var(--border)}
+.dept-card{border:1px dashed var(--border);border-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg)}
+.dept-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.incident-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
+.incident-num{font-size:11px;color:var(--accent);font-family:var(--mono);padding-top:8px;white-space:nowrap;min-width:30px}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.output-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.output-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;min-height:200px}
+.copy-btn{background:var(--accent2);color:#0f1117;border:none;border-radius:5px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all 0.15s}
+.copy-btn:hover{background:#2eb892}
+.copy-btn.copied{background:#2a5}
+.branch-stats{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.separator{border:none;border-top:1px solid var(--border);margin:14px 0}
+.top-actions{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+.save-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all 0.15s}
+.save-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+@media(max-width:768px){
+  .app{grid-template-columns:1fr;height:auto}
+  .left{border-right:none;border-bottom:1px solid var(--border)}
+  .row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT: INPUT -->
+  <div class="left">
+    <h1>🗂 Конструктор отчёта по аварийности</h1>
+
+    <div class="top-actions">
+      <button class="save-btn" onclick="saveData()">💾 Сохранить черновик</button>
+      <button class="save-btn" onclick="loadData()">📂 Загрузить черновик</button>
+      <button class="save-btn" onclick="clearAll()">🗑 Очистить всё</button>
+    </div>
+
+    <!-- GENERAL -->
+    <div class="section">
+      <h2>Общее</h2>
+      <label>Месяц</label>
+      <input type="text" id="month" placeholder="Апрель" value="Апрель">
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>% аварийности</label>
+          <input type="text" id="total_pct" placeholder="11.4%">
+        </div>
+        <div>
+          <label>Аварий</label>
+          <input type="number" id="total_accidents" placeholder="55">
+        </div>
+        <div>
+          <label>Всего РК</label>
+          <input type="number" id="total_rk" placeholder="495">
+        </div>
+      </div>
+    </div>
+
+    <!-- BRANCHES -->
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 style="margin:14px 0 10px">Филиалы</h2>
+      <button class="btn btn-ghost btn-sm" onclick="addBranch()">+ Добавить филиал</button>
+    </div>
+    <div id="branches-list"></div>
+
+    <div class="actions">
+      <button class="btn btn-accent2" onclick="generate()">⚡ Сгенерировать отчёт</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="right">
+    <div class="output-header">
+      <h1>📋 Готовый текст</h1>
+      <button class="copy-btn" id="copyBtn" onclick="copyOutput()">Копировать</button>
+    </div>
+    <div class="output-box" id="output">Заполните данные слева и нажмите «Сгенерировать отчёт»...</div>
+  </div>
+</div>
+
+<script>
+let branches = [];
+let branchCounter = 0;
+
+const BRANCH_NAMES = ['Уфимский','Казанский','Оренбургский','Стерлитамакский','Йошкар-Олинский','Ишимбайский','Салаватский','Октябрьский','Московский','Нефтекамский','Орский','Нижегородский'];
+const DEPT_NAMES = ['ИТС','ОЭ','СИ','ЦУС','ОРИА','ОЭРМИС','ОЭСДИРС','СРПО','РСС','Оптики-сварщики','Сторонние операторы','ОПОС','ИБ','МВОЛС','ОРИТО','ОССИВ','ОСК','ОЭТ','СБ','ГС','ТОССБ','Другое'];
+
+function addBranch(data) {
+  const id = ++branchCounter;
+  const b = data || { id, name:'', pct:'', accidents:'', total:'', hasTotal:true, depts:[], collapsed:false };
+  if (!data) b.id = id;
+  branches.push(b);
+  renderBranches();
+}
+
+function removeBranch(id) {
+  if (!confirm('Удалить филиал?')) return;
+  branches = branches.filter(b => b.id !== id);
+  renderBranches();
+}
+
+function toggleBranch(id) {
+  const b = branches.find(b => b.id === id);
+  if (b) { b.collapsed = !b.collapsed; renderBranches(); }
+}
+
+function addDept(branchId) {
+  const b = branches.find(b => b.id === branchId);
+  if (b) { b.depts.push({ name:'', count:1, incidents:[''] }); renderBranches(); }
+}
+
+function removeDept(branchId, di) {
+  const b = branches.find(b => b.id === branchId);
+  if (b) { b.depts.splice(di, 1); renderBranches(); }
+}
+
+function addIncident(branchId, di) {
+  const b = branches.find(b => b.id === branchId);
+  if (b) { b.depts[di].incidents.push(''); renderBranches(); }
+}
+
+function removeIncident(branchId, di, ii) {
+  const b = branches.find(b => b.id === branchId);
+  if (b) { b.depts[di].incidents.splice(ii, 1); renderBranches(); }
+}
+
+function syncField(id, field, value) {
+  const b = branches.find(b => b.id === id);
+  if (b) b[field] = value;
+}
+function syncDeptField(id, di, field, value) {
+  const b = branches.find(b => b.id === id);
+  if (b && b.depts[di] !== undefined) b.depts[di][field] = value;
+}
+function syncIncident(id, di, ii, value) {
+  const b = branches.find(b => b.id === id);
+  if (b && b.depts[di]) b.depts[di].incidents[ii] = value;
+}
+function syncHasTotal(id, val) {
+  const b = branches.find(b => b.id === id);
+  if (b) b.hasTotal = val;
+}
+
+function renderBranches() {
+  const container = document.getElementById('branches-list');
+  container.innerHTML = branches.map(b => renderBranch(b)).join('');
+}
+
+function renderBranch(b) {
+  const deptsHtml = b.depts.map((d, di) => `
+    <div class="dept-card">
+      <div class="dept-header">
+        <select onchange="syncDeptField(${b.id},${di},'name',this.value)" style="flex:1">
+          <option value="">— Отдел —</option>
+          ${DEPT_NAMES.map(n=>`<option value="${n}" ${d.name===n?'selected':''}>${n}</option>`).join('')}
+        </select>
+        <div style="display:flex;align-items:center;gap:6px">
+          <label style="display:inline;margin:0;font-size:11px;color:var(--muted)">РК:</label>
+          <input type="number" value="${d.count}" min="1" style="width:55px;display:inline" onchange="syncDeptField(${b.id},${di},'count',parseInt(this.value)||1)">
+        </div>
+        <button class="btn btn-danger" onclick="removeDept(${b.id},${di})">✕</button>
+      </div>
+      ${d.incidents.map((inc, ii) => `
+        <div class="incident-row">
+          <span class="incident-num">${di+1}.${ii+1}</span>
+          <textarea placeholder="Описание инцидента..." oninput="syncIncident(${b.id},${di},${ii},this.value)">${inc}</textarea>
+          <button class="btn btn-danger" onclick="removeIncident(${b.id},${di},${ii})" style="margin-top:6px">✕</button>
+        </div>
+      `).join('')}
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addIncident(${b.id},${di})">+ Инцидент</button>
+    </div>
+  `).join('');
+
+  return `
+    <div class="branch-card">
+      <div class="branch-header" onclick="toggleBranch(${b.id})">
+        <div>
+          <div class="branch-title">${b.name || 'Новый филиал'}</div>
+          <div class="branch-stats">${b.pct||'?'}% · ${b.depts.length} отд. · ${b.depts.reduce((s,d)=>s+d.incidents.length,0)} инц.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();removeBranch(${b.id})">Удалить</button>
+          <span style="font-size:16px;color:var(--muted)">${b.collapsed ? '▶' : '▼'}</span>
+        </div>
+      </div>
+      ${b.collapsed ? '' : `
+      <div class="branch-body">
+        <label>Название филиала</label>
+        <input type="text" list="branch-names-list" placeholder="Уфимский" value="${b.name}" oninput="syncField(${b.id},'name',this.value);renderBranches()">
+        <datalist id="branch-names-list">
+          ${BRANCH_NAMES.map(n=>`<option value="${n}">`).join('')}
+        </datalist>
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label>% аварийности</label>
+            <input type="text" placeholder="11.5%" value="${b.pct}" oninput="syncField(${b.id},'pct',this.value)">
+          </div>
+          <div>
+            <label>Аварий</label>
+            <input type="number" placeholder="0" value="${b.accidents}" oninput="syncField(${b.id},'accidents',this.value)">
+          </div>
+          <div>
+            <label>Всего РК</label>
+            <input type="number" placeholder="0" value="${b.total}" oninput="syncField(${b.id},'total',this.value)">
+          </div>
+        </div>
+        <label style="margin-top:10px;display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" ${b.hasTotal?'checked':''} onchange="syncHasTotal(${b.id},this.checked)">
+          <span>Показывать знаменатель (N/M РК)</span>
+        </label>
+        <hr class="separator">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Инциденты по отделам</span>
+          <button class="btn btn-ghost btn-sm" onclick="addDept(${b.id})">+ Отдел</button>
+        </div>
+        ${deptsHtml}
+      </div>
+      `}
+    </div>
+  `;
+}
+
+function generate() {
+  const month = document.getElementById('month').value.trim() || 'месяц';
+  const totalPct = document.getElementById('total_pct').value.trim();
+  const totalAcc = document.getElementById('total_accidents').value.trim();
+  const totalRK = document.getElementById('total_rk').value.trim();
+
+  let lines = [];
+
+  let header = `Добрый день. Процент аварийности за ${month} по всем филиалам`;
+  if (totalPct) header += ` ${totalPct}`;
+  if (totalAcc && totalRK) header += ` (${totalAcc}/${totalRK})`;
+  else if (totalAcc) header += ` (${totalAcc})`;
+  lines.push(header);
+  lines.push('');
+
+  branches.forEach(b => {
+    if (!b.name) return;
+    let line = b.name;
+    if (b.pct) line += ` ${b.pct}`;
+    line += ' (';
+    if (b.accidents && b.hasTotal && b.total) line += `${b.accidents}/${b.total} РК`;
+    else if (b.total) line += `${b.total} РК`;
+    else if (b.accidents) line += `${b.accidents} РК`;
+    line += ')';
+    lines.push(line);
+  });
+
+  branches.forEach(b => {
+    if (!b.name || b.depts.length === 0) return;
+    lines.push('──────────────────────────────────────────────');
+    lines.push('');
+    lines.push(`${b.name} филиал:`);
+    b.depts.forEach((d, di) => {
+      const deptName = d.name || 'Отдел';
+      lines.push(`${di+1}. ${deptName} (${d.count} РК)`);
+      d.incidents.forEach((inc, ii) => {
+        if (inc.trim()) lines.push(`${di+1}.${ii+1} ${inc.trim()}`);
+      });
+    });
+  });
+
+  lines.push('──────────────────────────────────────────────');
+  document.getElementById('output').textContent = lines.join('\n');
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  if (text.startsWith('Заполните')) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Скопировано!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Копировать'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function saveData() {
+  const data = {
+    month: document.getElementById('month').value,
+    total_pct: document.getElementById('total_pct').value,
+    total_accidents: document.getElementById('total_accidents').value,
+    total_rk: document.getElementById('total_rk').value,
+    branches, branchCounter
+  };
+  localStorage.setItem('report_draft', JSON.stringify(data));
+  alert('Черновик сохранён!');
+}
+
+function loadData() {
+  const raw = localStorage.getItem('report_draft');
+  if (!raw) { alert('Черновик не найден'); return; }
+  const data = JSON.parse(raw);
+  document.getElementById('month').value = data.month || '';
+  document.getElementById('total_pct').value = data.total_pct || '';
+  document.getElementById('total_accidents').value = data.total_accidents || '';
+  document.getElementById('total_rk').value = data.total_rk || '';
+  branches = data.branches || [];
+  branchCounter = data.branchCounter || 0;
+  renderBranches();
+  alert('Черновик загружен!');
+}
+
+function clearAll() {
+  if (!confirm('Очистить все данные?')) return;
+  branches = [];
+  branchCounter = 0;
+  document.getElementById('month').value = '';
+  document.getElementById('total_pct').value = '';
+  document.getElementById('total_accidents').value = '';
+  document.getElementById('total_rk').value = '';
+  document.getElementById('output').textContent = 'Заполните данные слева и нажмите «Сгенерировать отчёт»...';
+  renderBranches();
+}
+</script>
+</body>
+</html>
